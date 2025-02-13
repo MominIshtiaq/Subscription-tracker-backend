@@ -15,7 +15,7 @@ export const signUp = async (req, res, next) => {
   session.startTransaction(); // This perform atomic updates
 
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // Check if a user already exist
     const existingUser = await User.findOne({ email });
@@ -44,6 +44,7 @@ export const signUp = async (req, res, next) => {
           name,
           email,
           password: hashedPassword,
+          role: role || "user",
         },
       ],
       /* We attach this session here. So If something goes wrong this will abort the session transaction
@@ -114,8 +115,16 @@ export const signIn = async (req, res, next) => {
 };
 
 export const signOut = async (req, res, next) => {
-  res.send({ title: "Sign Out" });
-  next();
+  try {
+    res.clearCookie("token");
+
+    res.status(200).json({
+      success: true,
+      message: "User signed out successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /*

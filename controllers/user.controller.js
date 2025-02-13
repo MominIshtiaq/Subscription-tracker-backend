@@ -6,8 +6,12 @@ import { JWT_EXPIRES_IN, JWT_SECRET } from "../config/env.js";
 
 export const getUsers = async (req, res, next) => {
   try {
+    if (req.user.role !== "admin") {
+      const error = new Error("Unauthorized");
+      error.statusCode = 401;
+      throw error;
+    }
     const users = await User.find();
-
     res.status(200).json({ success: true, data: users });
   } catch (error) {
     next(error);
@@ -16,11 +20,22 @@ export const getUsers = async (req, res, next) => {
 
 export const getUser = async (req, res, next) => {
   try {
-    const user = await User.find({ _id: req.params.id }).select("-password");
+    const user = await User.findById(req.params.id).select("-password");
 
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404;
+      throw error;
+    }
+
+    console.log(req.user);
+
+    if (
+      req.user.role !== "admin" &&
+      req.user._id.toString() !== user._id.toString()
+    ) {
+      const error = new Error("Unauthorized User found");
+      error.statusCode = 401;
       throw error;
     }
 
@@ -34,6 +49,11 @@ export const setUser = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
+    if (req.user.role !== "admin") {
+      const error = new Error("Unauthorized");
+      error.statusCode = 401;
+      throw error;
+    }
     const { name, email, password } = req.body;
 
     const existingUser = await User.findOne({ email });
@@ -87,6 +107,15 @@ export const updateUser = async (req, res, next) => {
       throw error;
     }
 
+    if (
+      req.user.role !== "admin" &&
+      req.user._id.toString() !== user._id.toString()
+    ) {
+      const error = new Error("Unauthorized");
+      error.statusCode = 401;
+      throw error;
+    }
+
     const { name, email, password } = req.body;
 
     if (name) user.name = name;
@@ -130,6 +159,15 @@ export const deleteUser = async (req, res, next) => {
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404;
+      throw error;
+    }
+
+    if (
+      req.user.role !== "admin" &&
+      req.user._id.toString() !== user._id.toString()
+    ) {
+      const error = new Error("Unauthorized");
+      error.statusCode = 401;
       throw error;
     }
 
